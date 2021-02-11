@@ -16,7 +16,7 @@
             background: #333;
             text-align: center;
             color: #eee;
-            float: left;
+            display: inline-block;
             border-radius: 0.3em;
             margin: 0.2em;
             padding: 0.2em;
@@ -28,6 +28,9 @@
             box-shadow: 0 0.2em 0 0.05em #222;
             border-bottom-color: #555;
             font-family: "palem"!important; 
+        }
+        .container > div {
+            margin-bottom: 0.5em;
         }
         body {
             background-color: #eee;
@@ -45,16 +48,22 @@
                 <div class="col" style="text-align: right;"><button class="btn btn-danger" id="clear">Clear memory</button></div>
             </div>
         </div>
-        <div><p>Click on a key to copy then press copy !</p></div>
+        <div class="row"><h3>Click on a key to copy (it will copy itself) !</h3></div>
         <div class="keyboard" id="keyboard">
             <div class="key">ꞃ</div>
+        </div>
+        <div class="row"><h3>Export / Import</h3></div>
+        <div class="row">
+            <div class="col"><a href="#" class="btn btn-success" id="download">Download configuration</a></div>
+            <div class="col"><input type="file" id="import-file" /><button class="btn btn-warning" id="load">Load</button></div>
         </div>
     </div>
     <script type="text/javascript">
         const inp = document.getElementById("character"),
               but = document.getElementById("record"),
               keyboard = document.getElementById("keyboard"),
-              clear = document.getElementById("clear");
+              clear = document.getElementById("clear"),
+              download = document.getElementById("download");
 
         let known_keys = JSON.parse(window.localStorage.getItem("known_keys")) || [];
 
@@ -104,17 +113,45 @@
             }
         });
 
+        const clearFunction = function() {
+            known_keys = [];
+            window.localStorage.setItem("known_keys", JSON.stringify(known_keys));
+            updateKeyboard();
+        }
+
         clear.addEventListener("click", function(event) {
         	event.preventDefault();
             if (confirm("Are you sure you want to clear your keyboard ?") === true) {
-                known_keys = [];
-                window.localStorage.setItem("known_keys", JSON.stringify(known_keys));
-                updateKeyboard();
+                clearFunction();
             }
         });
 
         updateKeyboard();
 
+        download.addEventListener("click", function(event) {
+            event.preventDefault();
+            link = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(known_keys));
+            element = createElement(`<a href="${link}" download="virtualKeyboardConfig.json">dl</a>`)
+            download.parentNode.appendChild(element);
+            element.click();
+            window.setTimeout(function() {element.remove();}, 2);
+        });
+
+        document.getElementById("load").addEventListener("click", function(event) {
+            event.preventDefault();
+            let importedFile = document.getElementById('import-file').files[0],
+                  reader = new FileReader();
+            reader.onload = function() {
+              let fileContent = JSON.parse(reader.result);
+
+              clearFunction();
+              known_keys = fileContent;
+              window.localStorage.setItem("known_keys", JSON.stringify(known_keys));
+
+              updateKeyboard();
+            };
+            reader.readAsText(importedFile); 
+        });
 
     </script>
 </body>
