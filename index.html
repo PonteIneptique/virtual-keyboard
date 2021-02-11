@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Virtual Keyboard</title>
+    <meta charset="utf-8">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+
+    <style type="text/css">
+        @font-face {
+            font-family: "Palem";
+            src: url("https://folk.uib.no/hnooh/mufi/fonts/Palemonas%20MUFI/Palemonas-2/PalemMUFI-reg.ttf") format("ttf");
+        }
+        body { font-family: "palem"!important; }
+        /* https://codepen.io/gschier/pen/VKgyaY */
+        .keyboard > .key {
+            background: #333;
+            text-align: center;
+            color: #eee;
+            float: left;
+            border-radius: 0.3em;
+            margin: 0.2em;
+            padding: 0.2em;
+            width: 3.3em;
+            height: 3.3em;
+            box-sizing: border-box;
+            cursor: pointer;
+            border: 1px solid #444;
+            box-shadow: 0 0.2em 0 0.05em #222;
+            border-bottom-color: #555;
+            font-family: "palem"!important; 
+        }
+        body {
+            background-color: #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Virtual personal keyboard</h1>
+        <div class="form">
+            <div class="row">
+                <div class="col">Character</div>
+                <div class="col"><input class="form-control" type="text" id="character" /></div>
+                <div class="col"><button class="btn btn-primary" id="record">Record</button></div>
+                <div class="col" style="text-align: right;"><button class="btn btn-danger" id="clear">Clear memory</button></div>
+            </div>
+        </div>
+        <div><p>Click on a key to copy then press copy !</p></div>
+        <div class="keyboard" id="keyboard">
+            <div class="key">ꞃ</div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        const inp = document.getElementById("character"),
+              but = document.getElementById("record"),
+              keyboard = document.getElementById("keyboard"),
+              clear = document.getElementById("clear");
+
+        let known_keys = JSON.parse(window.localStorage.getItem("known_keys")) || [];
+
+
+        const selectText = function(event) {
+        	let elem = event.target;
+            if (window.getSelection && document.createRange) { //Browser compatibility
+              sel = window.getSelection();
+              if(sel.toString() == ''){ //no text selection
+                 window.setTimeout(function(){
+                    range = document.createRange(); //range object
+                    range.selectNodeContents(elem); //sets Range
+                    sel.removeAllRanges(); //remove all ranges from selection
+                    sel.addRange(range);//add Range to a Selection.
+                    document.execCommand('copy');
+                },1);
+              }
+            }
+        };
+
+        const createElement = function (html) {
+            /** Create an element from an HTML string
+             * Source : https://stackoverflow.com/questions/494143/creating-a-new-dom-element-from-an-html-string-using-built-in-dom-methods-or-pro/35385518#35385518
+             *
+             **/
+            let template = document.createElement('template');
+            html = html.trim(); // Never return a text node of whitespace as the result
+            template.innerHTML = html;
+            return template.content.firstChild;
+        };
+
+        const updateKeyboard = function() {
+            keyboard.innerHTML = '';
+            for (var i = known_keys.length - 1; i >= 0; i--) {
+            	key = createElement(`<div class="key">${known_keys[i]}</div>`);
+                keyboard.appendChild(key);
+                key.addEventListener("click", selectText);
+            }
+        };
+
+        but.addEventListener("click", function(event) {
+        	event.preventDefault();
+            if (known_keys.includes(inp.value) === false && inp.value){
+                known_keys.push(inp.value);
+                window.localStorage.setItem("known_keys", JSON.stringify(known_keys));
+                updateKeyboard();
+            }
+        });
+
+        clear.addEventListener("click", function(event) {
+        	event.preventDefault();
+            if (confirm("Are you sure you want to clear your keyboard ?") === true) {
+                known_keys = [];
+                window.localStorage.setItem("known_keys", JSON.stringify(known_keys));
+                updateKeyboard();
+            }
+        });
+
+        updateKeyboard();
+
+
+    </script>
+</body>
+</html>
