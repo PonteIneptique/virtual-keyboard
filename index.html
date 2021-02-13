@@ -172,8 +172,8 @@
 
         but.addEventListener("click", function(event) {
         	event.preventDefault();
-            if (known_keys.includes(inp.value) === false && inp.value){
-                known_keys.push(inp.value);
+            if (known_keys.includes(inp.value) === false && inp.value.trim() !== ""){
+                known_keys.push(inp.value.trim());
                 window.localStorage.setItem("known_keys", JSON.stringify(known_keys));
                 updateKeyboard();
             }
