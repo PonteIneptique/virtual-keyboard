@@ -8,7 +8,7 @@
     <style type="text/css">
         @font-face {
             font-family: "Palem";
-            src: url("https://folk.uib.no/hnooh/mufi/fonts/Palemonas%20MUFI/Palemonas-2/PalemMUFI-reg.ttf") format("ttf");
+            src: url("./PalemMUFI-reg.ttf") format("truetype");
         }
         body { font-family: "palem"!important; }
         /* https://codepen.io/gschier/pen/VKgyaY */
@@ -16,6 +16,8 @@
             background: #333;
             text-align: center;
             color: #eee;
+            font-size: 18px;
+            font-weight: bold;
             display: inline-block;
             border-radius: 0.3em;
             margin: 0.2em;
@@ -35,27 +37,89 @@
         body {
             background-color: #eee;
         }
+        .function {
+            padding: 0.5em;
+            border: 1px solid #444;
+            border-radius: 0.3em;
+            margin:0.5em;
+        }
+        .function > div {
+            margin-bottom: 0.5em;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Virtual personal keyboard</h1>
-        <div class="form">
-            <div class="row">
-                <div class="col">Character</div>
-                <div class="col"><input class="form-control" type="text" id="character" /></div>
-                <div class="col"><button class="btn btn-primary" id="record">Record</button></div>
-                <div class="col" style="text-align: right;"><button class="btn btn-danger" id="clear">Clear memory</button></div>
-            </div>
-        </div>
         <div class="row"><h3>Click on a key to copy (it will copy itself) !</h3></div>
         <div class="keyboard" id="keyboard">
             <div class="key">ꞃ</div>
         </div>
-        <div class="row"><h3>Export / Import</h3></div>
         <div class="row">
-            <div class="col"><a href="#" class="btn btn-success" id="download">Download configuration</a></div>
-            <div class="col"><input type="file" id="import-file" /><button class="btn btn-warning" id="load">Load</button></div>
+            <div class="col">
+                <div class="function">
+                    <h3>Add elements</h3>
+                    <div class="row">
+                        <div class="col-4"><label for="character">Character you want to add</label></div>
+                        <div class="col-8">
+                            <div class="input-group">
+                              <input class="form-control" type="text" id="character" placeholder="ꞃ" />
+                              <button class="btn btn-primary" id="record">Record</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;"></div>
+                    <hr />
+                    <div><button class="btn btn-danger" id="clear">Clear memory</button></div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="function">
+                    <h3>Export configuration</h3>
+                    <div><a href="#" class="btn btn-success" id="download">Download configuration</a></div>
+                    <hr />
+                    <h3>Import configuration</h3>
+                    <div>
+                        <div class="input-group">
+                            <input type="file" id="import-file" class="form-control" />
+                            <button class="btn btn-warning" id="load">Load</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="function">
+                    <h3>Create from plain text</h3>
+                    <p class="help">This will find each unique character in the file or text area and 
+                    create a keyboard out of it</p>
+                    <div>
+                        <div class="row">
+                            <div class="col-8">
+                                <label for="ignore-ascii">Ignore ASCII characters</label>
+                            </div>
+                            <div class="col-4">
+                                <input type="checkbox" id="ignore-ascii" checked="true" />
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="row">
+                            <div class="col-8">
+                                <label for="split-unicode">Split unicode</label>
+                            </div>
+                            <div class="col-4">
+                                <input type="checkbox" id="split-unicode" />
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="input-group">
+                            <input class="form-control" type="file" id="import-xml" placeholder="Choose a file" />
+                            <button class="btn btn-warning" id="parse">Load</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <script type="text/javascript">
@@ -63,7 +127,9 @@
               but = document.getElementById("record"),
               keyboard = document.getElementById("keyboard"),
               clear = document.getElementById("clear"),
-              download = document.getElementById("download");
+              download = document.getElementById("download"),
+              ignoreAscii = document.getElementById("ignore-ascii"),
+              splitUnicode = document.getElementById("split-unicode");
 
         let known_keys = JSON.parse(window.localStorage.getItem("known_keys")) || [];
 
@@ -97,7 +163,7 @@
 
         const updateKeyboard = function() {
             keyboard.innerHTML = '';
-            for (var i = known_keys.length - 1; i >= 0; i--) {
+            for (var i = 0; i <= known_keys.length-1; i++) {
             	key = createElement(`<div class="key">${known_keys[i]}</div>`);
                 keyboard.appendChild(key);
                 key.addEventListener("click", selectText);
@@ -146,6 +212,33 @@
 
               clearFunction();
               known_keys = fileContent;
+              window.localStorage.setItem("known_keys", JSON.stringify(known_keys));
+
+              updateKeyboard();
+            };
+            reader.readAsText(importedFile); 
+        });
+
+        document.getElementById("parse").addEventListener("click", function(event) {
+            event.preventDefault();
+            let importedFile = document.getElementById('import-xml').files[0],
+                  reader = new FileReader();
+            reader.onload = function() {
+
+              let chars = reader.result;
+              if (ignoreAscii.checked === true) {
+                chars = chars.replace(/[a-zA-Z0-9]+/gm, "");
+              }
+              if (splitUnicode.checked === true) {
+                chars = chars.normalize("NFD").split("");
+              } else {
+                chars = Array.from(chars);
+              }
+              chars = new Set(chars);
+
+              clearFunction();
+              known_keys = [...chars].filter(chr => chr.trim());
+              known_keys.sort()
               window.localStorage.setItem("known_keys", JSON.stringify(known_keys));
 
               updateKeyboard();
